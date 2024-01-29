@@ -1,50 +1,55 @@
 package chord
 
-import chord.typeclasses.{given, *}
+import cats.Monad
+import cats.free.Free
+import cats.effect.IO
+import cats.effect.std.Queue
+import cats.syntax.all.*
+import cats.arrow.FunctionK
+
+import chord.utils.toFunctionK
 
 trait Backend:
   def runNetwork[A](at: Loc)(network: Network[IO, A]): IO[A]
 
 object Backend:
-  def local(locs: List[Loc]): LocalBackend =
-    LocalBackend(locs)
+  def local(locs: List[Loc]): IO[LocalBackend] =
+    for inboxes <- LocalBackend.makeInboxes(locs)
+    yield LocalBackend(inboxes)
 
-class LocalBackend(locs: List[Loc]) extends Backend:
-  var inboxes: Map[Loc, MQueue[Any]] =
-    locs.map(loc => (loc, MQueue.empty)).toMap
+class LocalBackend(inboxes: Map[Loc, Queue[IO, Any]]) extends Backend:
+  val locs = inboxes.keys.toSeq
 
   def runNetwork[A](at: Loc)(
       network: Network[IO, A]
-  ): IO[A] = Free.eval(network) {
-    [X] => (x: NetworkSig[IO, X]) => runLocal(x, at)
-  }
+  ): IO[A] =
+    network.foldMap(runLocal(at, inboxes).toFunctionK)
 
-  def runLocal[A](na: NetworkSig[IO, A], at: Loc): IO[A] =
-    na match
-      case NetworkSig.Run(ma) =>
-        ma
+  def runLocal(
+      at: Loc,
+      inboxes: Map[Loc, Queue[IO, Any]]
+  ): [A] => NetworkSig[IO, A] => IO[A] = [A] =>
+    (na: NetworkSig[IO, A]) =>
+      na match
+        case NetworkSig.Run(ma) =>
+          ma
 
-      case NetworkSig.Send(a, to) =>
-        val inbox = inboxes.get(to).get
-        inbox.write(a)
+        case NetworkSig.Send(a, to) =>
+          val inbox = inboxes.get(to).get
+          inbox.offer(a)
 
-      case NetworkSig.Recv(from) =>
-        val inbox = inboxes.get(at).get
-        inbox.read.map(_.asInstanceOf[A])
+        case NetworkSig.Recv(from) =>
+          val inbox = inboxes.get(at).get
+          inbox.take.map(_.asInstanceOf[A])
 
-      case NetworkSig.Broadcast(a) =>
-        locs
-          .filter(_ != at)
-          .map { to =>
-            runLocal(NetworkSig.Send(a, to), at)
+        case NetworkSig.Broadcast(a) =>
+          locs
+            .filter(_ != at)
+            .traverse_ { to =>
+              runLocal(at, inboxes)(NetworkSig.Send(a, to))
           }
-          .sequence_
 
-import java.util.concurrent.LinkedTransferQueue
-
-class MQueue[A](queue: LinkedTransferQueue[A]):
-  def read: IO[A] = IO.suspend(queue.take())
-  def write(a: A): IO[Unit] = IO.suspend(queue.put(a))
-
-object MQueue:
-  def empty[A]: MQueue[A] = new MQueue(new LinkedTransferQueue())
+object LocalBackend:
+  def makeInboxes(locs: Seq[Loc]): IO[Map[Loc, Queue[IO, Any]]] =
+    for queues <- locs.traverse(_ => Queue.unbounded[IO, Any])
+    yield locs.zip(queues).toMap

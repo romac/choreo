@@ -1,6 +1,10 @@
 package chord
 
-import chord.typeclasses.{given, *}
+import cats.Monad
+import cats.free.Free
+import cats.effect.IO
+import cats.syntax.all.*
+import cats.arrow.FunctionK
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
@@ -23,22 +27,27 @@ enum ChoreoSig[M[_], A]:
 
 extension [L <: Loc](l: L)
   def locally[M[_], A](m: Unwrap[l.type] ?=> M[A]): Choreo[M, A @@ l.type] =
-    Free.lift(ChoreoSig.Local[M, A, l.type](l, un => m(using un)))
+    Free.liftF(ChoreoSig.Local[M, A, l.type](l, un => m(using un)))
 
   def send[A](a: A @@ L): Sendable[A, L] = (l, a)
 
   def cond[M[_], A, B](a: A @@ L)(f: A => Choreo[M, B]): Choreo[M, B] =
-    Free.lift(ChoreoSig.Cond(l, a, f))
+    Free.liftF(ChoreoSig.Cond(l, a, f))
 
 opaque type Sendable[A, L <: Loc] = (L, A @@ L)
 
 extension [A, Src <: Loc](s: Sendable[A, Src])
   def to[M[_], Dst <: Loc](dst: Dst): Choreo[M, A @@ dst.type] =
-    Free.lift(ChoreoSig.Comm(s._1, s._2, dst))
+    Free.liftF(ChoreoSig.Comm(s._1, s._2, dst))
 
 extension [M[_], A](c: Choreo[M, A])
-  def runLocal(using M: Monad[M]) = Free.eval(c) {
-    [X] => (x: ChoreoSig[M, X]) => localHandler(x)
+  def runLocal(using M: Monad[M]) = c.foldMap(localHandlerK)
+
+private[chord] def localHandlerK[M[_]](using
+    M: Monad[M]
+): FunctionK[[X] =>> ChoreoSig[M, X], M] =
+  new FunctionK[[X] =>> ChoreoSig[M, X], M] {
+    def apply[A](c: ChoreoSig[M, A]): M[A] = localHandler(c)
   }
 
 private[chord] def localHandler[M[_], A](c: ChoreoSig[M, A])(using
