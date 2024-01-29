@@ -15,9 +15,6 @@ extension [M[_], A](c: Choreo[M, A])
   def run[B](backend: B, at: Loc)(using B: Backend[B, M]): M[A] =
     backend.runNetwork(at)(Endpoint.project(c, at))
 
-  def forever: Choreo[M, Nothing] =
-    c.flatMap(_ => c.forever)
-
 object Choreo:
   def pure[M[_], A](a: A): Choreo[M, A] = Free.pure(a)
 

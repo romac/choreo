@@ -29,7 +29,7 @@ def main: IO[Unit] =
 def choreo: Choreo[IO, Unit] =
   for
     stateS <- server.locally(Ref.of[IO, State](Map.empty))
-    _ <- step(stateS).forever
+    _ <- step(stateS).foreverM
   yield ()
 
 def step(stateS: Ref[IO, State] @@ "server"): Choreo[IO, Unit] =
