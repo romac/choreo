@@ -43,11 +43,13 @@ val protocol = for {
 
 } yield deliveryDate
 
+import cats.effect.IO.asyncForIO
+
 val app: IO[Unit] = for {
   backend <- Backend.local(List(buyer, seller))
 
-  fiberSeller <- protocol.runIO(backend, seller).start
-  fiberBuyer <- protocol.runIO(backend, buyer).start
+  fiberSeller <- protocol.run(backend, seller).start
+  fiberBuyer <- protocol.run(backend, buyer).start
 
   _ <- fiberSeller.join
   _ <- fiberBuyer.join

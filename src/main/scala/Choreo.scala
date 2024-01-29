@@ -8,8 +8,8 @@ import cats.arrow.FunctionK
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
-extension [A](c: Choreo[IO, A])
-  def runIO(backend: Backend, at: Loc): IO[A] =
+extension [M[_], A](c: Choreo[M, A])
+  def run[B](backend: B, at: Loc)(using B: Backend[B, M]): M[A] =
     backend.runNetwork(at)(Endpoint.project(c, at))
 
 object Choreo:

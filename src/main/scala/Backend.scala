@@ -2,34 +2,37 @@ package chord
 
 import cats.Monad
 import cats.free.Free
-import cats.effect.IO
-import cats.effect.std.Queue
-import cats.syntax.all.*
 import cats.arrow.FunctionK
+import cats.effect.std.Queue
+import cats.effect.kernel.Concurrent
+import cats.syntax.all.*
 
 import chord.utils.toFunctionK
 
-trait Backend:
-  def runNetwork[A](at: Loc)(network: Network[IO, A]): IO[A]
+trait Backend[B, M[_]]:
+  extension (backend: B)
+    def runNetwork[A](at: Loc)(network: Network[M, A]): M[A]
 
 object Backend:
-  def local(locs: List[Loc]): IO[LocalBackend] =
+  def local[M[_]: Concurrent](
+      locs: List[Loc]
+  ): M[LocalBackend[M]] =
     for inboxes <- LocalBackend.makeInboxes(locs)
     yield LocalBackend(inboxes)
 
-class LocalBackend(inboxes: Map[Loc, Queue[IO, Any]]) extends Backend:
+class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
   val locs = inboxes.keys.toSeq
 
   def runNetwork[A](at: Loc)(
-      network: Network[IO, A]
-  ): IO[A] =
-    network.foldMap(runLocal(at, inboxes).toFunctionK)
+      network: Network[M, A]
+  )(using M: Monad[M]): M[A] =
+    network.foldMap(run(at, inboxes).toFunctionK)
 
-  def runLocal(
+  private[chord] def run(
       at: Loc,
-      inboxes: Map[Loc, Queue[IO, Any]]
-  ): [A] => NetworkSig[IO, A] => IO[A] = [A] =>
-    (na: NetworkSig[IO, A]) =>
+      inboxes: Map[Loc, Queue[M, Any]]
+  )(using M: Monad[M]): [A] => NetworkSig[M, A] => M[A] = [A] =>
+    (na: NetworkSig[M, A]) =>
       na match
         case NetworkSig.Run(ma) =>
           ma
@@ -46,10 +49,17 @@ class LocalBackend(inboxes: Map[Loc, Queue[IO, Any]]) extends Backend:
           locs
             .filter(_ != at)
             .traverse_ { to =>
-              runLocal(at, inboxes)(NetworkSig.Send(a, to))
+              run(at, inboxes)(NetworkSig.Send(a, to))
           }
 
 object LocalBackend:
-  def makeInboxes(locs: Seq[Loc]): IO[Map[Loc, Queue[IO, Any]]] =
-    for queues <- locs.traverse(_ => Queue.unbounded[IO, Any])
+  def makeInboxes[M[_]: Concurrent](
+      locs: Seq[Loc]
+  ): M[Map[Loc, Queue[M, Any]]] =
+    for queues <- locs.traverse(_ => Queue.unbounded[M, Any])
     yield locs.zip(queues).toMap
+
+  given backend[M[_]: Monad]: Backend[LocalBackend[M], M] with
+    extension (backend: LocalBackend[M])
+      def runNetwork[A](at: Loc)(network: Network[M, A]): M[A] =
+        runNetwork(at)(network)
