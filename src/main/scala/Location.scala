@@ -21,7 +21,7 @@ def unwrap[L <: Location]: Unwrap[L] = [A] =>
       case At.Empty() => ???
 
 extension [A](value: A)
-  def at(loc: Location): A @@ loc.type =
+  def at[L <: Location](loc: L): A @@ loc.type =
     wrap[loc.type](value)
 
 type Unwrap[L <: Location] = [A] => A @@ L => A
