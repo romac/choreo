@@ -34,14 +34,16 @@ extension [L <: Location](l: L)
   // def locally[M[_], A](m: Unwrap[l.type] ?=> M[A]): Choreo[M, A @@ l.type] =
   //   Free.lift(ChoreoSig.Local(l, un => m(using un)))
 
-  def send[M[_], A, L1 <: Location](
-      a: A @@ L,
-      l1: L1
-  ): Choreo[M, A @@ l1.type] =
-    Free.lift(ChoreoSig.Comm(l, a, l1))
+  def send[A, L1 <: Location](a: A @@ L): Sendable[A, L] = (l, a)
 
   def cond[M[_], A, B](a: A @@ L)(f: A => Choreo[M, B]): Choreo[M, B] =
     Free.lift(ChoreoSig.Cond(l, a, f))
+
+opaque type Sendable[A, L <: Location] = (L, A @@ L)
+
+extension [A, L <: Location](s: Sendable[A, L])
+  def to[M[_], L1 <: Location](l1: L1): Choreo[M, A @@ l1.type] =
+    Free.lift(ChoreoSig.Comm(s._1, s._2, l1))
 
 extension [M[_], A](c: Choreo[M, A])
   def runLocal(using M: Monad[M]) = Free.eval(c) {

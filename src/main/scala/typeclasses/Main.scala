@@ -51,12 +51,12 @@ val bookseller: Choreo[IO, Option[Date @@ "buyer"]] = for {
   titleB <- buyer.locally[IO, String] { _ =>
     Console.print("Enter book title: ") *> Console.readLine()
   }
-  titleS <- buyer.send(titleB, seller)
+  titleS <- buyer.send(titleB).to(seller)
 
   priceS <- seller.locally[IO, Double] { _ =>
     Monad[IO].pure(42.0)
   }
-  priceB <- seller.send(priceS, buyer)
+  priceB <- seller.send(priceS).to(buyer)
 
   decision <- buyer.locally { un =>
     Console.println(s"Price of ${un(titleB)} is ${un(priceB)}") *>
@@ -70,7 +70,7 @@ val bookseller: Choreo[IO, Option[Date @@ "buyer"]] = for {
         deliveryDateS <- seller.locally { _ =>
           Monad[IO].pure(Date(2021, 1, 1))
         }
-        deliveryDateB <- seller.send(deliveryDateS, buyer)
+        deliveryDateB <- seller.send(deliveryDateS).to(buyer)
 
         _ <- buyer.locally { un =>
           Console.println(
