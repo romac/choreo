@@ -10,6 +10,10 @@ ThisBuild / scalacOptions ++= Seq("-source", "3.3")
 
 lazy val root = project
   .in(file("."))
+  .aggregate(core, examples)
+
+lazy val core = project
+  .in(file("core"))
   .settings(
     name := "choreo",
     libraryDependencies ++= Seq(
@@ -29,7 +33,7 @@ lazy val examples = project
       "org.typelevel" %% "cats-effect" % Versions.catsEffect
     )
   )
-  .dependsOn(root)
+  .dependsOn(core)
 
 val PrimaryJava = JavaSpec.temurin("8")
 val LTSJava = JavaSpec.temurin("17")
