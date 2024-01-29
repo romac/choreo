@@ -1,10 +1,17 @@
 package chord
 
-import chord.typeclasses.*
+import chord.typeclasses.{given, *}
 
 enum IO[+A]:
   case Suspend(thunk: () => A)
   case FlatMap[A, B](io: IO[B], f: B => IO[A]) extends IO[A]
+
+object IO:
+  def pure[A](a: A): IO[A] =
+    IO.Suspend(() => a)
+
+  def suspend[A](thunk: => A): IO[A] =
+    IO.Suspend(() => thunk)
 
 extension [A](io: IO[A])
   def unsafePerform(): A =
@@ -16,10 +23,7 @@ extension [A](io: IO[A])
 
 given Monad[IO] with
   def pure[A](a: A): IO[A] =
-    IO.Suspend(() => a)
-
-  def suspend[A](thunk: => A): IO[A] =
-    IO.Suspend(() => thunk)
+    IO.pure(a)
 
   extension [A](fa: IO[A])
     def map[B](f: A => B): IO[B] =
@@ -47,48 +51,38 @@ case class Date(year: Int, month: Int, day: Int):
 val buyer: "buyer" = "buyer"
 val seller: "sender" = "sender"
 
-val bookseller: Choreo[IO, Option[Date @@ "buyer"]] = for {
-  titleB <- buyer.locally[IO, String] { _ =>
+val bookseller = for {
+  titleB <- buyer.locally {
     Console.print("Enter book title: ") *> Console.readLine()
   }
   titleS <- buyer.send(titleB).to(seller)
 
-  priceS <- seller.locally[IO, Double] { _ =>
-    Monad[IO].pure(42.0)
-  }
+  priceS <- seller.locally(IO.pure(42.0))
   priceB <- seller.send(priceS).to(buyer)
 
-  decision <- buyer.locally { un =>
-    Console.println(s"Price of ${un(titleB)} is ${un(priceB)}") *>
+  decision <- buyer.locally {
+    Console.println(s"Price of ${titleB.!} is ${priceB.!}") *>
       Console.print("Do you want to buy it? [y/n] ") *>
-      Console.readLine().map(_.trim == "y")
+      Console.readLine().map(_ == "y")
   }
 
-  _ <- buyer.cond(decision) { decision =>
-    if (decision) {
+  deliveryDate <- buyer.cond(decision) {
+    case true =>
       for {
-        deliveryDateS <- seller.locally { _ =>
-          Monad[IO].pure(Date(2021, 1, 1))
-        }
+        deliveryDateS <- seller.locally(IO.pure(Date(2021, 1, 1)))
         deliveryDateB <- seller.send(deliveryDateS).to(buyer)
 
-        _ <- buyer.locally { un =>
-          Console.println(
-            s"Book will be delivered on ${un(deliveryDateB)}"
-          )
+        _ <- buyer.locally {
+          Console.println(s"Book will be delivered on ${deliveryDateB.!}")
         }
       } yield Some(deliveryDateB)
-    } else {
-      for {
-        _ <- buyer.locally { _ =>
-          Console.println("Ok, bye!")
-        }
-      } yield None
-    }
+
+    case false =>
+      buyer.locally(Console.println("Ok, bye!")) *> Choreo.pure(None)
   }
 
-} yield None
+} yield deliveryDate
 
 @main
 def main: Unit =
-  bookseller.runLocal.unsafePerform()
+  println(bookseller.runLocal.unsafePerform())

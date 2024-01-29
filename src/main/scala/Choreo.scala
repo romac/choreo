@@ -1,49 +1,36 @@
 package chord
 
-import chord.typeclasses.*
+import chord.typeclasses.{given, *}
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
 object Choreo:
   def pure[M[_], A](a: A): Choreo[M, A] = Free.pure(a)
 
-extension [M[_], A](c: Choreo[M, A])
-  def map[B](f: A => B): Choreo[M, B] =
-    c.flatMap(a => Free.pure(f(a)))
-
-  def flatMap[B](f: A => Choreo[M, B]): Choreo[M, B] =
-    c match
-      case Free.Pure(a) => f(a)
-      case Free.FlatMap(c, g) =>
-        Free.FlatMap(c, a => g(a).flatMap(f))
-
 enum ChoreoSig[M[_], A]:
-  case Local[M[_], A, L <: Location](l: L, m: Unwrap[L] => M[A])
+  case Local[M[_], A, L](l: L, m: Unwrap[L] => M[A])
       extends ChoreoSig[M, A @@ L]
 
-  case Comm[M[_], A, L0 <: Location, L1 <: Location](l0: L0, a: A @@ L0, l1: L1)
+  case Comm[M[_], A, L0, L1](l0: L0, a: A @@ L0, l1: L1)
       extends ChoreoSig[M, A @@ L1]
 
-  case Cond[M[_], A, B, L <: Location](l: L, a: A @@ L, f: A => Choreo[M, B])
+  case Cond[M[_], A, B, L](l: L, a: A @@ L, f: A => Choreo[M, B])
       extends ChoreoSig[M, B]
 
-extension [L <: Location](l: L)
-  def locally[M[_], A](m: Unwrap[l.type] => M[A]): Choreo[M, A @@ l.type] =
-    Free.lift(ChoreoSig.Local(l, m))
+extension [L](l: L)
+  def locally[M[_], A](m: Unwrap[l.type] ?=> M[A]): Choreo[M, A @@ l.type] =
+    Free.lift(ChoreoSig.Local[M, A, l.type](l, un => m(using un)))
 
-  // def locally[M[_], A](m: Unwrap[l.type] ?=> M[A]): Choreo[M, A @@ l.type] =
-  //   Free.lift(ChoreoSig.Local(l, un => m(using un)))
-
-  def send[A, L1 <: Location](a: A @@ L): Sendable[A, L] = (l, a)
+  def send[A](a: A @@ L): Sendable[A, L] = (l, a)
 
   def cond[M[_], A, B](a: A @@ L)(f: A => Choreo[M, B]): Choreo[M, B] =
     Free.lift(ChoreoSig.Cond(l, a, f))
 
-opaque type Sendable[A, L <: Location] = (L, A @@ L)
+opaque type Sendable[A, L] = (L, A @@ L)
 
-extension [A, L <: Location](s: Sendable[A, L])
-  def to[M[_], L1 <: Location](l1: L1): Choreo[M, A @@ l1.type] =
-    Free.lift(ChoreoSig.Comm(s._1, s._2, l1))
+extension [A, Src](s: Sendable[A, Src])
+  def to[M[_], Dest](dest: Dest): Choreo[M, A @@ dest.type] =
+    Free.lift(ChoreoSig.Comm(s._1, s._2, dest))
 
 extension [M[_], A](c: Choreo[M, A])
   def runLocal(using M: Monad[M]) = Free.eval(c) {
@@ -55,10 +42,10 @@ private[chord] def localHandler[M[_], A](c: ChoreoSig[M, A])(using
 ): M[A] =
   c match
     case ChoreoSig.Local(l, m) =>
-      m(unwrap).map(wrap[l.type](_))
+      m(unwrap).map(wrap(_).asInstanceOf)
 
     case ChoreoSig.Comm(l0, a, l1) =>
-      M.pure(wrap(unwrap(a)))
+      M.pure(wrap(unwrap(a)).asInstanceOf)
 
     case ChoreoSig.Cond(l, a, f) =>
       f(unwrap(a)).runLocal

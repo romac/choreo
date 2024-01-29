@@ -1,27 +1,28 @@
 package chord
 
-type Location = String
+import scala.annotation.targetName
 
-enum At[A, +Loc <: Location]:
+enum At[A, Loc]:
   case Wrap(a: A) extends At[A, Loc]
   case Empty() extends At[A, Loc]
 
-type @@[A, +Loc <: Location] = At[A, Loc]
+type @@[A, Loc] = At[A, Loc]
 
-extension [A, Loc <: Location](a: A @@ Loc)
-  def un(using unwrap: Unwrap[Loc]): A = unwrap(a)
+type Unwrap[Loc] = [A] => A @@ Loc => A
 
-def wrap[Loc <: Location]: [A] => A => A @@ Loc =
+extension [A, Loc](a: A @@ Loc)
+  @targetName("unwrap")
+  def !(using U: Unwrap[Loc]): A = U(a)
+
+def wrap[Loc]: [A] => A => A @@ Loc =
   [A] => (a: A) => At.Wrap(a)
 
-def unwrap[L <: Location]: Unwrap[L] = [A] =>
-  (a: A @@ L) =>
+def unwrap[Loc]: Unwrap[Loc] = [A] =>
+  (a: A @@ Loc) =>
     a match
       case At.Wrap(a) => a
-      case At.Empty() => ???
+      case At.Empty() => scala.sys.error("Attempted to unwrap an Empty value")
 
 extension [A](value: A)
-  def at[L <: Location](loc: L): A @@ loc.type =
+  def at[Loc](loc: Loc): A @@ loc.type =
     wrap[loc.type](value)
-
-type Unwrap[L <: Location] = [A] => A @@ L => A
