@@ -6,4 +6,4 @@ import cats.effect.unsafe.implicits.global
 
 @main
 def main: Unit =
-  chord.examples.bookseller.app.unsafeRunSync()
+  chord.examples.kv.app.unsafeRunSync()

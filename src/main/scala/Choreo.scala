@@ -3,14 +3,20 @@ package chord
 import cats.Monad
 import cats.free.Free
 import cats.effect.IO
+import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 import cats.arrow.FunctionK
+
+import chord.utils.toFunctionK
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
 extension [M[_], A](c: Choreo[M, A])
   def run[B](backend: B, at: Loc)(using B: Backend[B, M]): M[A] =
     backend.runNetwork(at)(Endpoint.project(c, at))
+
+  def forever: Choreo[M, Nothing] =
+    c.flatMap(_ => c.forever)
 
 object Choreo:
   def pure[M[_], A](a: A): Choreo[M, A] = Free.pure(a)
@@ -41,24 +47,19 @@ extension [A, Src <: Loc](s: Sendable[A, Src])
     Free.liftF(ChoreoSig.Comm(s._1, s._2, dst))
 
 extension [M[_], A](c: Choreo[M, A])
-  def runLocal(using M: Monad[M]) = c.foldMap(localHandlerK)
+  def runLocal(using M: Monad[M]): M[A] =
+    c.foldMap(localHandler.toFunctionK)
 
-private[chord] def localHandlerK[M[_]](using
-    M: Monad[M]
-): FunctionK[[X] =>> ChoreoSig[M, X], M] =
-  new FunctionK[[X] =>> ChoreoSig[M, X], M] {
-    def apply[A](c: ChoreoSig[M, A]): M[A] = localHandler(c)
-  }
+  private[chord] def localHandler(using
+      M: Monad[M]
+  ): [A] => ChoreoSig[M, A] => M[A] = [A] =>
+    (c: ChoreoSig[M, A]) =>
+      c match
+        case ChoreoSig.Local(l, m) =>
+          m(unwrap).map(wrap(_).asInstanceOf)
 
-private[chord] def localHandler[M[_], A](c: ChoreoSig[M, A])(using
-    M: Monad[M]
-): M[A] =
-  c match
-    case ChoreoSig.Local(l, m) =>
-      m(unwrap).map(wrap(_).asInstanceOf)
+        case ChoreoSig.Comm(l0, a, l1) =>
+          M.pure(wrap(unwrap(a)).asInstanceOf)
 
-    case ChoreoSig.Comm(l0, a, l1) =>
-      M.pure(wrap(unwrap(a)).asInstanceOf)
-
-    case ChoreoSig.Cond(l, a, f) =>
-      f(unwrap(a)).runLocal
+        case ChoreoSig.Cond(l, a, f) =>
+          f(unwrap(a)).runLocal
