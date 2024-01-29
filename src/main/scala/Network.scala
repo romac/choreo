@@ -1,4 +1,4 @@
-package chord
+package choreo
 
 import cats.Monad
 import cats.free.Free
@@ -6,7 +6,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import cats.arrow.FunctionK
 
-import chord.utils.toFunctionK
+import choreo.utils.toFunctionK
 
 enum NetworkSig[M[_], A]:
   case Run(ma: M[A]) extends NetworkSig[M, A]
@@ -39,7 +39,7 @@ object Endpoint:
   def project[M[_], A](c: Choreo[M, A], at: Loc): Network[M, A] =
     c.foldMap(epp[M](at).toFunctionK)
 
-  private[chord] def epp[M[_]](
+  private[choreo] def epp[M[_]](
       at: Loc
   ): [A] => ChoreoSig[M, A] => Network[M, A] = [A] =>
     (c: ChoreoSig[M, A]) =>

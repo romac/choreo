@@ -1,4 +1,4 @@
-package chord
+package choreo
 
 import cats.Monad
 import cats.free.Free
@@ -7,7 +7,7 @@ import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 import cats.arrow.FunctionK
 
-import chord.utils.toFunctionK
+import choreo.utils.toFunctionK
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
@@ -47,7 +47,7 @@ extension [M[_], A](c: Choreo[M, A])
   def runLocal(using M: Monad[M]): M[A] =
     c.foldMap(localHandler.toFunctionK)
 
-  private[chord] def localHandler(using
+  private[choreo] def localHandler(using
       M: Monad[M]
   ): [A] => ChoreoSig[M, A] => M[A] = [A] =>
     (c: ChoreoSig[M, A]) =>

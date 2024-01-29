@@ -1,4 +1,4 @@
-package chord
+package choreo
 package examples
 
 import cats.effect.IO

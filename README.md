@@ -1,4 +1,4 @@
-## ScalaChord
+## Choreo
 
 A library for choregraphic programming in Scala.
 

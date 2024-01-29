@@ -1,5 +1,5 @@
-import chord.*
-import chord.typeclasses.*
+import choreo.*
+import choreo.typeclasses.*
 
 class LocalSuite extends munit.FunSuite {
   test("local bookseller") { () }

@@ -1,4 +1,4 @@
-package chord
+package choreo
 
 import scala.annotation.targetName
 
@@ -23,10 +23,10 @@ extension [A, L <: Loc](a: A @@ L)
   @targetName("unwrap")
   def !(using U: Unwrap[L]): A = U(a)
 
-private[chord] def wrap[L <: Loc]: [A] => A => A @@ L =
+private[choreo] def wrap[L <: Loc]: [A] => A => A @@ L =
   [A] => (a: A) => At.Wrap(a)
 
-private[chord] def unwrap[L <: Loc]: Unwrap[L] = [A] =>
+private[choreo] def unwrap[L <: Loc]: Unwrap[L] = [A] =>
   (a: A @@ L) =>
     a match
       case At.Wrap(a) => a

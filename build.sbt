@@ -1,17 +1,17 @@
 ThisBuild / organization := "me.romac"
-ThisBuild / homepage := Some(url("https://github.com/romac/chord"))
+ThisBuild / homepage := Some(url("https://github.com/romac/choreo"))
 ThisBuild / licenses := Seq(
   "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
 )
 
-ThisBuild / version := Versions.chord
+ThisBuild / version := Versions.choreo
 ThisBuild / scalaVersion := Versions.scala3
 ThisBuild / scalacOptions ++= Seq("-source", "3.3")
 
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "chord",
+    name := "choreo",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % Versions.cats,
       "org.typelevel" %% "cats-free" % Versions.cats,
@@ -23,7 +23,7 @@ lazy val root = project
 lazy val examples = project
   .in(file("examples"))
   .settings(
-    name := "chord-examples",
+    name := "choreo-examples",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % Versions.cats,
       "org.typelevel" %% "cats-effect" % Versions.catsEffect

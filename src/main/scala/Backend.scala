@@ -1,4 +1,4 @@
-package chord
+package choreo
 
 import cats.Monad
 import cats.free.Free
@@ -7,7 +7,7 @@ import cats.effect.std.Queue
 import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 
-import chord.utils.toFunctionK
+import choreo.utils.toFunctionK
 
 trait Backend[B, M[_]]:
   extension (backend: B)
@@ -28,7 +28,7 @@ class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
   )(using M: Monad[M]): M[A] =
     network.foldMap(run(at, inboxes).toFunctionK)
 
-  private[chord] def run(
+  private[choreo] def run(
       at: Loc,
       inboxes: Map[Loc, Queue[M, Any]]
   )(using M: Monad[M]): [A] => NetworkSig[M, A] => M[A] = [A] =>

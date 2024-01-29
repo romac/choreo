@@ -1,4 +1,4 @@
-package chord
+package choreo
 package utils
 
 import cats.arrow.FunctionK
