@@ -83,6 +83,20 @@ val bookseller = for {
 
 } yield deliveryDate
 
+import scala.concurrent.{Future, ExecutionContext}
+
 @main
 def main: Unit =
-  println(bookseller.runLocal.unsafePerform())
+  val ec = ExecutionContext.global
+
+  val backend = Backend.local(List(buyer, seller))
+
+  ec.execute { () =>
+    println(
+      bookseller.runIO(backend, seller).unsafePerform()
+    )
+  }
+
+  println(
+    bookseller.runIO(backend, buyer).unsafePerform()
+  )

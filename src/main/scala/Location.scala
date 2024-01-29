@@ -2,27 +2,36 @@ package chord
 
 import scala.annotation.targetName
 
-enum At[A, Loc]:
-  case Wrap(a: A) extends At[A, Loc]
-  case Empty() extends At[A, Loc]
+type Loc = String
 
-type @@[A, Loc] = At[A, Loc]
+enum At[A, L <: Loc]:
+  case Wrap(a: A) extends At[A, L]
+  case Empty() extends At[A, L]
 
-type Unwrap[Loc] = [A] => A @@ Loc => A
+  type Value = A
+  type Location = L
 
-extension [A, Loc](a: A @@ Loc)
+object At:
+  def empty[A, L <: Loc]: A @@ L = Empty()
+  def apply[L <: Loc]: [A] => A => A @@ L = [A] => (a: A) => Wrap(a)
+
+type @@[A, L <: Loc] = At[A, L]
+
+type Unwrap[L <: Loc] = [A] => A @@ L => A
+
+extension [A, L <: Loc](a: A @@ L)
   @targetName("unwrap")
-  def !(using U: Unwrap[Loc]): A = U(a)
+  def !(using U: Unwrap[L]): A = U(a)
 
-def wrap[Loc]: [A] => A => A @@ Loc =
+private[chord] def wrap[L <: Loc]: [A] => A => A @@ L =
   [A] => (a: A) => At.Wrap(a)
 
-def unwrap[Loc]: Unwrap[Loc] = [A] =>
-  (a: A @@ Loc) =>
+private[chord] def unwrap[L <: Loc]: Unwrap[L] = [A] =>
+  (a: A @@ L) =>
     a match
       case At.Wrap(a) => a
       case At.Empty() => scala.sys.error("Attempted to unwrap an Empty value")
 
 extension [A](value: A)
-  def at[Loc](loc: Loc): A @@ loc.type =
+  def at[L <: Loc](loc: L): A @@ loc.type =
     wrap[loc.type](value)

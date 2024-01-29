@@ -33,6 +33,8 @@ object Free:
       G: Monad[G]
   ): G[A] =
     ffa match
-      case Free.Pure(a) => G.pure(a)
+      case Free.Pure(a) =>
+        G.pure(a)
+
       case Free.FlatMap(fb, g) =>
         G.flatMap(f(fb))(a => eval(g(a))(f))
