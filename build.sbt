@@ -1,17 +1,15 @@
-lazy val common = Seq(
-  organization := "me.romac",
-  licenses := Seq(
-    "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
-  ),
-  homepage := Some(url("https://github.com/romac/chord")),
-  version := Versions.chord,
-  scalaVersion := Versions.scala3,
-  scalacOptions ++= Seq("-source", "3.3")
+ThisBuild / organization := "me.romac"
+ThisBuild / homepage := Some(url("https://github.com/romac/chord"))
+ThisBuild / licenses := Seq(
+  "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
 )
+
+ThisBuild / version := Versions.chord
+ThisBuild / scalaVersion := Versions.scala3
+ThisBuild / scalacOptions ++= Seq("-source", "3.3")
 
 lazy val root = project
   .in(file("."))
-  .settings(common)
   .settings(
     name := "chord",
     libraryDependencies ++= Seq(
@@ -24,7 +22,6 @@ lazy val root = project
 
 lazy val examples = project
   .in(file("examples"))
-  .settings(common)
   .settings(
     name := "chord-examples",
     libraryDependencies ++= Seq(
@@ -33,3 +30,40 @@ lazy val examples = project
     )
   )
   .dependsOn(root)
+
+val PrimaryJava = JavaSpec.temurin("8")
+val LTSJava = JavaSpec.temurin("17")
+val GraalVM = JavaSpec.graalvm(Graalvm.Distribution("graalvm-community"), "17")
+
+ThisBuild / githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava, GraalVM)
+
+ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+
+ThisBuild / githubWorkflowPublishTargetBranches :=
+  Seq(RefPredicate.StartsWith(Ref.Tag("v")))
+
+// ThisBuild / githubWorkflowPublish := Seq(
+//   WorkflowStep.Sbt(
+//     commands = List("ci-release"),
+//     name = Some("Publish project")
+//   )
+// )
+//
+// ThisBuild / githubWorkflowPublishTargetBranches :=
+//   Seq(
+//     RefPredicate.StartsWith(Ref.Tag("v")),
+//     RefPredicate.Equals(Ref.Branch("main"))
+//   )
+//
+// ThisBuild / githubWorkflowPublish := Seq(
+//   WorkflowStep.Sbt(
+//     commands = List("ci-release"),
+//     name = Some("Publish project"),
+//     env = Map(
+//       "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+//       "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+//       "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+//       "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+//     )
+//   )
+// )
