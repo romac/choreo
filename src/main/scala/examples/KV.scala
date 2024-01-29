@@ -3,6 +3,7 @@ package examples
 package kv
 
 import cats.effect.IO
+import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Ref
 import cats.syntax.all.*
 
@@ -17,9 +18,9 @@ type Response = Option[String]
 val client: "client" = "client"
 val server: "server" = "server"
 
-def app: IO[Unit] =
+def main: IO[Unit] =
   for
-    backend <- Backend.local[IO](List(client, server))
+    backend <- Backend.local(List(client, server))
     clientTask = choreo.run(backend, client)
     serverTask = choreo.run(backend, server)
     _ <- (clientTask, serverTask).parTupled

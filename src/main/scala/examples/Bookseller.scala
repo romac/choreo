@@ -3,6 +3,7 @@ package examples
 package bookseller
 
 import cats.effect.IO
+import cats.effect.IO.asyncForIO
 import cats.syntax.all.*
 
 case class Book(title: String, price: Double)
@@ -18,48 +19,48 @@ val books = List(
 val buyer: "buyer" = "buyer"
 val seller: "sender" = "sender"
 
-def protocol: Choreo[IO, Option[Date @@ "buyer"]] = for
-  titleB <- buyer.locally:
-    IO.print("Enter book title: ") *> IO.readLine
+def main: IO[Unit] =
+  for
+    backend <- Backend.local(List(buyer, seller))
 
-  titleS <- buyer.send(titleB).to(seller)
+    sellerIO = protocol.run(backend, seller)
+    buyerIO = protocol.run(backend, buyer)
 
-  priceS <- seller.locally:
-    for
-      book <- IO.pure(books.find(_.title == titleS.!))
-      price <- book match
-        case Some(b) => IO.pure(b.price)
-        case None    => IO.raiseError(new Exception("Book not found"))
-    yield price
+    _ <- (sellerIO, buyerIO).parTupled
+  yield ()
 
-  priceB <- seller.send(priceS).to(buyer)
+def protocol: Choreo[IO, Option[Date @@ "buyer"]] =
+  for
+    titleB <- buyer.locally:
+      IO.print("Enter book title: ") *> IO.readLine
 
-  decision <- buyer.locally:
-    IO.println(s"Price of ${titleB.!} is ${priceB.!}") *>
-      IO.print("Do you want to buy it? [y/n] ") *>
-      IO.readLine.map(_ == "y")
+    titleS <- buyer.send(titleB).to(seller)
 
-  deliveryDate <- buyer.cond(decision):
-    case true =>
+    priceS <- seller.locally:
       for
-        deliveryDateS <- seller.locally(IO.pure(Date(2024, 12, 24)))
-        deliveryDateB <- seller.send(deliveryDateS).to(buyer)
+        book <- IO.pure(books.find(_.title == titleS.!))
+        price <- book match
+          case Some(b) => IO.pure(b.price)
+          case None    => IO.raiseError(new Exception("Book not found"))
+      yield price
 
-        _ <- buyer.locally:
-          IO.println(s"Book will be delivered on ${deliveryDateB.!}")
-      yield Some(deliveryDateB)
+    priceB <- seller.send(priceS).to(buyer)
 
-    case false =>
-      buyer.locally(IO.println("Ok, bye!")) *> Choreo.pure(None)
-yield deliveryDate
+    decision <- buyer.locally:
+      IO.println(s"Price of ${titleB.!} is ${priceB.!}") *>
+        IO.print("Do you want to buy it? [y/n] ") *>
+        IO.readLine.map(_ == "y")
 
-import cats.effect.IO.asyncForIO
+    deliveryDate <- buyer.cond(decision):
+      case true =>
+        for
+          deliveryDateS <- seller.locally(IO.pure(Date(2024, 12, 24)))
+          deliveryDateB <- seller.send(deliveryDateS).to(buyer)
 
-val app: IO[Unit] = for
-  backend <- Backend.local(List(buyer, seller))
+          _ <- buyer.locally:
+            IO.println(s"Book will be delivered on ${deliveryDateB.!}")
+        yield Some(deliveryDateB)
 
-  sellerIO = protocol.run(backend, seller)
-  buyerIO = protocol.run(backend, buyer)
-
-  _ <- (sellerIO, buyerIO).parTupled
-yield ()
+      case false =>
+        buyer.locally(IO.println("Ok, bye!")) *> Choreo.pure(None)
+  yield deliveryDate
