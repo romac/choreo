@@ -6,6 +6,8 @@ import cats.effect.IO
 import cats.effect.IO.asyncForIO
 import cats.syntax.all.*
 
+import choreo.backend.Backend
+
 case class Book(title: String, price: Double)
 
 case class Date(year: Int, month: Int, day: Int):

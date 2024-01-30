@@ -7,6 +7,8 @@ import cats.effect.IO.asyncForIO
 import cats.effect.kernel.Ref
 import cats.syntax.all.*
 
+import choreo.backend.Backend
+
 type State = Map[String, String]
 
 enum Request:

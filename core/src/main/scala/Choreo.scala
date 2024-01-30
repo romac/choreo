@@ -7,6 +7,7 @@ import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 import cats.arrow.FunctionK
 
+import choreo.backend.Backend
 import choreo.utils.toFunctionK
 
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
