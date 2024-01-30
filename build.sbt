@@ -1,7 +1,7 @@
 ThisBuild / organization := "me.romac"
 ThisBuild / homepage := Some(url("https://github.com/romac/choreo"))
 ThisBuild / licenses := Seq(
-  "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
+  "BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")
 )
 
 ThisBuild / version := Versions.choreo
