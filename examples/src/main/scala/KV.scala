@@ -19,20 +19,24 @@ val client: "client" = "client"
 val server: "server" = "server"
 
 def main: IO[Unit] =
+  import choreo.Serialize.identities.given
+
   for
     backend <- Backend.local(List(client, server))
-    clientTask = choreo.run(backend, client)
-    serverTask = choreo.run(backend, server)
+    clientTask = app.run(backend, client)
+    serverTask = app.run(backend, server)
     _ <- (clientTask, serverTask).parTupled
   yield ()
 
-def choreo: Choreo[IO, Unit] =
+def app(using Serialize[Request], Serialize[Response]): Choreo[IO, Unit] =
   for
     stateS <- server.locally(Ref.of[IO, State](Map.empty))
     _ <- step(stateS).foreverM
   yield ()
 
-def step(stateS: Ref[IO, State] @@ "server"): Choreo[IO, Unit] =
+def step(
+    stateS: Ref[IO, State] @@ "server"
+)(using Serialize[Request], Serialize[Response]): Choreo[IO, Unit] =
   for
     reqC <- client.locally(readRequest)
     resC <- kvs(reqC, stateS)
@@ -44,6 +48,9 @@ def step(stateS: Ref[IO, State] @@ "server"): Choreo[IO, Unit] =
 def kvs(
     reqC: Request @@ "client",
     stateS: Ref[IO, State] @@ "server"
+)(using
+    Serialize[Request],
+    Serialize[Response]
 ): Choreo[IO, Response @@ "client"] =
   for
     reqS <- client.send(reqC).to(server)

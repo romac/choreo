@@ -10,9 +10,9 @@ import choreo.utils.toFunctionK
 
 enum NetworkSig[M[_], A]:
   case Run(ma: M[A]) extends NetworkSig[M, A]
-  case Send(a: A, to: Loc) extends NetworkSig[M, Unit]
-  case Recv(from: Loc) extends NetworkSig[M, A]
-  case Broadcast(a: A) extends NetworkSig[M, Unit]
+  case Send(a: A, to: Loc, ser: Serialize[A]) extends NetworkSig[M, Unit]
+  case Recv(from: Loc, ser: Serialize[A]) extends NetworkSig[M, A]
+  case Broadcast(a: A, ser: Serialize[A]) extends NetworkSig[M, Unit]
 
 type Network[M[_], A] = Free[[X] =>> NetworkSig[M, X], A]
 
@@ -23,14 +23,14 @@ object Network:
   def run[M[_], A](ma: M[A]): Network[M, A] =
     Free.liftF(NetworkSig.Run(ma))
 
-  def send[M[_], A](a: A, to: Loc): Network[M, Unit] =
-    Free.liftF(NetworkSig.Send(a, to))
+  def send[M[_], A](a: A, to: Loc)(using ser: Serialize[A]): Network[M, Unit] =
+    Free.liftF(NetworkSig.Send(a, to, ser))
 
-  def recv[M[_], A](from: Loc): Network[M, A] =
-    Free.liftF(NetworkSig.Recv(from))
+  def recv[M[_], A](from: Loc)(using ser: Serialize[A]): Network[M, A] =
+    Free.liftF(NetworkSig.Recv(from, ser))
 
-  def broadcast[M[_], A](a: A): Network[M, Unit] =
-    Free.liftF(NetworkSig.Broadcast(a))
+  def broadcast[M[_], A](a: A)(using ser: Serialize[A]): Network[M, Unit] =
+    Free.liftF(NetworkSig.Broadcast(a, ser))
 
   def empty[M[_], A, L <: Loc]: Network[M, A @@ L] =
     Network.pure(At.empty[A, L])
@@ -48,13 +48,19 @@ object Endpoint:
           if at == loc then Network.run(m(unwrap)).map(wrap.asInstanceOf)
           else Network.empty.asInstanceOf
 
-        case ChoreoSig.Comm(src, a, dst) =>
+        case ChoreoSig.Comm(src, a, dst, ser) =>
           if at == src then
-            Network.send(unwrap(a), dst) *> Network.empty.asInstanceOf
-          else if at == dst then Network.recv(src).map(wrap.asInstanceOf)
+            Network.send(unwrap(a), dst)(using
+              ser
+            ) *> Network.empty.asInstanceOf
+          else if at == dst then
+            Network.recv(src)(using ser).map(wrap.asInstanceOf)
           else Network.empty[M, a.Value, a.Location]
 
-        case ChoreoSig.Cond(loc, a, f) =>
+        case ChoreoSig.Cond(loc, a, f, ser) =>
           if at == loc then
-            Network.broadcast(unwrap(a)) *> project(f(unwrap(a)), at)
-          else Network.recv(loc).flatMap(a => project(f(a.asInstanceOf), at))
+            Network.broadcast(unwrap(a))(using ser) *> project(f(unwrap(a)), at)
+          else
+            Network
+              .recv(loc)(using ser)
+              .flatMap(a => project(f(a.asInstanceOf), at))

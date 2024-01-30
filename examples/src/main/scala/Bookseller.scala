@@ -20,6 +20,8 @@ val buyer: "buyer" = "buyer"
 val seller: "sender" = "sender"
 
 def main: IO[Unit] =
+  import choreo.Serialize.identities.given
+
   for
     backend <- Backend.local(List(buyer, seller))
 
@@ -29,7 +31,12 @@ def main: IO[Unit] =
     _ <- (sellerIO, buyerIO).parTupled
   yield ()
 
-def protocol: Choreo[IO, Option[Date @@ "buyer"]] =
+def protocol(using
+    Serialize[Boolean],
+    Serialize[String],
+    Serialize[Double],
+    Serialize[Date]
+): Choreo[IO, Option[Date @@ "buyer"]] =
   for
     titleB <- buyer.locally:
       IO.print("Enter book title: ") *> IO.readLine
