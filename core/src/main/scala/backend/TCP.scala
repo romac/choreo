@@ -3,9 +3,10 @@ package backend
 
 import cats.Monad
 import cats.arrow.FunctionK
+import cats.syntax.all.*
 import cats.effect.std.Queue
 import cats.effect.kernel.Concurrent
-import cats.syntax.all.*
+import cats.effect.implicits.*
 
 import fs2.io.net.{Network => FS2Network}
 import fs2.io.net.Socket
@@ -52,24 +53,25 @@ class TCPBackend[M[_]](peers: Map[Loc, Peer]):
       clients <- makeClients
       server = FS2Network[M].server(port = Some(me.port))
 
-      _ <- server
-        .map { socket =>
+      fiber <- server
+        .parEvalMapUnordered(clients.size) { socket =>
           for
             frame <- Frame.read(socket)
             remoteAddr <- socket.remoteAddress
             client = clients.find(_.peer == remoteAddr).get
             _ <- client.queue.offer(frame)
-          yield Stream.empty[Unit]
+          yield ()
         }
-        .parJoin(100)
         .compile
         .drain
+        .start
 
-      result <- network.foldMap(runAt(at).toFunctionK)
+      result <- network.foldMap(run(at, clients).toFunctionK)
     yield result
 
-  private[choreo] def runAt(loc: Loc)(using
-      M: Monad[M]
+  private[choreo] def run(at: Loc, clients: Seq[Client[M]])(using
+      C: Concurrent[M],
+      N: FS2Network[M]
   ): [A] => NetworkSig[M, A] => M[A] = [A] =>
     (na: NetworkSig[M, A]) =>
       na match
@@ -78,19 +80,24 @@ class TCPBackend[M[_]](peers: Map[Loc, Peer]):
 
         case NetworkSig.Send(a, to, ser) =>
           val encoded = ser.encode(a)
-          // TODO: send to network
-          M.pure(())
+          val chunk: fs2.Chunk[Byte] = Chunk.array(encoded)
+          val client = clients.find(_.loc == to).get
+          val socket = FS2Network[M].client(client.peer)
+          socket.use: socket =>
+            Frame.write(socket, Frame(chunk))
 
         case NetworkSig.Recv(from, ser) =>
-          val encoded: ser.Encoding = ??? // TODO: receive from network
-          val value = ser.decode(encoded).get
-          M.pure(value)
+          val client = clients.find(_.loc == from).get
+          for
+            frame <- client.queue.take
+            value = ser.decode(frame.payload.toArray).get
+          yield value
 
         case NetworkSig.Broadcast(a, ser) =>
           locs
-            .filter(_ != loc)
+            .filter(_ != at)
             .traverse_ { to =>
-              runAt(loc)(NetworkSig.Send(a, to, ser))
+              run(at, clients)(NetworkSig.Send(a, to, ser))
           }
 end TCPBackend
 
