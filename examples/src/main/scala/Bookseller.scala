@@ -7,11 +7,26 @@ import cats.effect.IO.asyncForIO
 import cats.syntax.all.*
 
 import choreo.backend.Backend
+import com.comcast.ip4s.SocketAddress
+import com.comcast.ip4s.IpAddress
+import com.comcast.ip4s.Port
 
 case class Book(title: String, price: Double)
 
 case class Date(year: Int, month: Int, day: Int):
   override def toString(): String = s"$year-$month-$day"
+
+given Serialize[Date] with
+  def encode(a: Date): Array[Byte] =
+    a.toString.getBytes
+
+  def decode(encoded: Array[Byte]): Option[Date] =
+    String(encoded).split("-") match
+      case Array(year, month, day) =>
+        Some(Date(year.toInt, month.toInt, day.toInt))
+
+      case _ =>
+        None
 
 val books = List(
   Book("Functional Programming in Scala", 121.0),
@@ -22,16 +37,18 @@ val buyer: "buyer" = "buyer"
 val seller: "sender" = "sender"
 
 def main: IO[Unit] =
-  import choreo.Serialize.identities.given
+  val localhost = IpAddress.fromString("127.0.0.1").get
+  val backend = Backend.tcp(
+    Map(
+      buyer -> SocketAddress(localhost, Port.fromInt(8088).get),
+      seller -> SocketAddress(localhost, Port.fromInt(8089).get)
+    )
+  )
 
-  for
-    backend <- Backend.local(List(buyer, seller))
+  val sellerIO = protocol.run(backend, seller)
+  val buyerIO = protocol.run(backend, buyer)
 
-    sellerIO = protocol.run(backend, seller)
-    buyerIO = protocol.run(backend, buyer)
-
-    _ <- (sellerIO, buyerIO).parTupled
-  yield ()
+  (sellerIO, buyerIO).parTupled.void
 
 def protocol(using
     Serialize[Boolean],

@@ -57,7 +57,10 @@ class TCPBackend[M[_]](peers: Map[Loc, Peer]):
         .parEvalMapUnordered(clients.size) { socket =>
           for
             frame <- Frame.read(socket)
+            localAddr <- socket.remoteAddress
             remoteAddr <- socket.remoteAddress
+            _ = println(clients)
+            _ = println(s"Received $frame from $remoteAddr @ $localAddr")
             client = clients.find(_.peer == remoteAddr).get
             _ <- client.queue.offer(frame)
           yield ()

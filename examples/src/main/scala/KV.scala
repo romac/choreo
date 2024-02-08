@@ -8,6 +8,9 @@ import cats.effect.kernel.Ref
 import cats.syntax.all.*
 
 import choreo.backend.Backend
+import com.comcast.ip4s.IpAddress
+import com.comcast.ip4s.SocketAddress
+import com.comcast.ip4s.Port
 
 type State = Map[String, String]
 
@@ -15,20 +18,43 @@ enum Request:
   case Get(key: String)
   case Put(key: String, value: String)
 
+given Serialize[Request] with
+  def encode(a: Request): Array[Byte] =
+    a match
+      case Request.Get(key) =>
+        s"GET $key".getBytes
+
+      case Request.Put(key, value) =>
+        s"PUT $key $value".getBytes
+
+  def decode(encoded: Array[Byte]): Option[Request] =
+    String(encoded).split(" ") match
+      case Array("GET", key) =>
+        Some(Request.Get(key))
+
+      case Array("PUT", key, value) =>
+        Some(Request.Put(key, value))
+
+      case _ =>
+        None
+
 type Response = Option[String]
 
 val client: "client" = "client"
 val server: "server" = "server"
 
 def main: IO[Unit] =
-  import choreo.Serialize.identities.given
+  val localhost = IpAddress.fromString("127.0.0.1").get
+  val backend = Backend.tcp(
+    Map(
+      client -> SocketAddress(localhost, Port.fromInt(8088).get),
+      server -> SocketAddress(localhost, Port.fromInt(8089).get)
+    )
+  )
 
-  for
-    backend <- Backend.local(List(client, server))
-    clientTask = app.run(backend, client)
-    serverTask = app.run(backend, server)
-    _ <- (clientTask, serverTask).parTupled
-  yield ()
+  val clientTask = app.run(backend, client)
+  val serverTask = app.run(backend, server)
+  (clientTask, serverTask).parTupled.void
 
 def app(using Serialize[Request], Serialize[Response]): Choreo[IO, Unit] =
   for
