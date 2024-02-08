@@ -20,22 +20,38 @@ import java.nio.ByteBuffer
 type Peer = SocketAddress[IpAddress]
 case class Client[M[_]](loc: Loc, peer: Peer, queue: Queue[M, Frame])
 
-case class Frame(payload: Chunk[Byte])
+case class Frame(from: Loc, payload: Chunk[Byte])
 
 object Frame:
-  def read[M[_]](s: Socket[M])(using M: Monad[M]): M[Frame] =
+  def readLoc[M[_]](s: Socket[M])(using M: Monad[M]): M[Loc] =
+    for loc <- readPayload(s)
+    yield new String(loc.toArray)
+
+  def readPayload[M[_]](s: Socket[M])(using M: Monad[M]): M[Chunk[Byte]] =
     for
       sizeBytes <- s.readN(4)
       buffer = ByteBuffer.wrap(sizeBytes.toArray).order(LITTLE_ENDIAN)
       size = buffer.getInt
       payload <- s.readN(size)
-    yield Frame(payload)
+    yield payload
 
-  def write[M[_]: Monad](s: Socket[M], frame: Frame): M[Unit] =
-    val size = frame.payload.size
+  def read[M[_]](s: Socket[M])(using M: Monad[M]): M[Frame] =
+    for
+      from <- readLoc(s)
+      payload <- readPayload(s)
+    yield Frame(from, payload)
+
+  def writePayload[M[_]: Monad](s: Socket[M], payload: Chunk[Byte]): M[Unit] =
+    val size = payload.size
     val buffer = ByteBuffer.allocate(4).order(LITTLE_ENDIAN)
     val sizeBytes = buffer.putInt(size).array
-    s.write(Chunk.array(sizeBytes)) >> s.write(frame.payload)
+    s.write(Chunk.array(sizeBytes)) >> s.write(payload)
+
+  def writeLoc[M[_]: Monad](s: Socket[M], from: Loc): M[Unit] =
+    writePayload(s, Chunk.array(from.getBytes))
+
+  def write[M[_]: Monad](s: Socket[M], frame: Frame): M[Unit] =
+    writeLoc(s, frame.from) >> writePayload(s, frame.payload)
 
 class TCPBackend[M[_]](peers: Map[Loc, Peer]):
   val locs = peers.keys.toSeq
@@ -48,27 +64,24 @@ class TCPBackend[M[_]](peers: Map[Loc, Peer]):
       C: Concurrent[M],
       N: FS2Network[M]
   ): M[A] =
+    val me = peers(at)
     for
-      me <- C.pure(peers.get(at).get)
       clients <- makeClients
-      server = FS2Network[M].server(port = Some(me.port))
-
-      fiber <- server
-        .parEvalMapUnordered(clients.size) { socket =>
+      fiber <- FS2Network[M]
+        .server(port = Some(me.port))
+        .parEvalMapUnordered(clients.size + 1) { socket =>
           for
             frame <- Frame.read(socket)
-            localAddr <- socket.remoteAddress
             remoteAddr <- socket.remoteAddress
-            _ = println(clients)
-            _ = println(s"Received $frame from $remoteAddr @ $localAddr")
-            client = clients.find(_.peer == remoteAddr).get
+            // _ = println(s"[$at] Received frame from $remoteAddr: $frame")
+            client = clients.find(_.loc == frame.from).get
             _ <- client.queue.offer(frame)
+          // _ = println(s"[$at] Offered frame to ${client.loc}: $frame")
           yield ()
         }
         .compile
         .drain
         .start
-
       result <- network.foldMap(run(at, clients).toFunctionK)
     yield result
 
@@ -83,20 +96,26 @@ class TCPBackend[M[_]](peers: Map[Loc, Peer]):
 
         case NetworkSig.Send(a, to, ser) =>
           val encoded = ser.encode(a)
-          val chunk: fs2.Chunk[Byte] = Chunk.array(encoded)
+          val chunk = Chunk.array[Byte](encoded)
           val client = clients.find(_.loc == to).get
           val socket = FS2Network[M].client(client.peer)
+          val frame = Frame(at, chunk)
+          // println(s"[$at] Sending frame to $to: $frame")
           socket.use: socket =>
-            Frame.write(socket, Frame(chunk))
+            Frame.write(socket, frame)
 
         case NetworkSig.Recv(from, ser) =>
           val client = clients.find(_.loc == from).get
+          // println(s"[$at] Waiting for message from $from")
           for
             frame <- client.queue.take
+            // _ = println(s"[$at] Received frame from $from: $frame")
             value = ser.decode(frame.payload.toArray).get
+          // _ = println(s"[$at] Decoded $value")
           yield value
 
         case NetworkSig.Broadcast(a, ser) =>
+          // println(s"[$at] Broadcasting $a")
           locs
             .filter(_ != at)
             .traverse_ { to =>

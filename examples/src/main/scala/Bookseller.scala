@@ -11,22 +11,21 @@ import com.comcast.ip4s.SocketAddress
 import com.comcast.ip4s.IpAddress
 import com.comcast.ip4s.Port
 
+import io.circe.*
+import io.circe.generic.semiauto.*
+
 case class Book(title: String, price: Double)
+
+object Book:
+  given Encoder[Book] = deriveEncoder
+  given Decoder[Book] = deriveDecoder
 
 case class Date(year: Int, month: Int, day: Int):
   override def toString(): String = s"$year-$month-$day"
 
-given Serialize[Date] with
-  def encode(a: Date): Array[Byte] =
-    a.toString.getBytes
-
-  def decode(encoded: Array[Byte]): Option[Date] =
-    String(encoded).split("-") match
-      case Array(year, month, day) =>
-        Some(Date(year.toInt, month.toInt, day.toInt))
-
-      case _ =>
-        None
+object Date:
+  given Encoder[Date] = deriveEncoder
+  given Decoder[Date] = deriveDecoder
 
 val books = List(
   Book("Functional Programming in Scala", 121.0),

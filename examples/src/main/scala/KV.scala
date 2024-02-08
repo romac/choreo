@@ -12,31 +12,18 @@ import com.comcast.ip4s.IpAddress
 import com.comcast.ip4s.SocketAddress
 import com.comcast.ip4s.Port
 
+import io.circe.*
+import io.circe.generic.semiauto.*
+
 type State = Map[String, String]
 
 enum Request:
   case Get(key: String)
   case Put(key: String, value: String)
 
-given Serialize[Request] with
-  def encode(a: Request): Array[Byte] =
-    a match
-      case Request.Get(key) =>
-        s"GET $key".getBytes
-
-      case Request.Put(key, value) =>
-        s"PUT $key $value".getBytes
-
-  def decode(encoded: Array[Byte]): Option[Request] =
-    String(encoded).split(" ") match
-      case Array("GET", key) =>
-        Some(Request.Get(key))
-
-      case Array("PUT", key, value) =>
-        Some(Request.Put(key, value))
-
-      case _ =>
-        None
+object Request:
+  given Encoder[Request] = deriveEncoder
+  given Decoder[Request] = deriveDecoder
 
 type Response = Option[String]
 
