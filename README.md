@@ -1,11 +1,13 @@
-## Choreo
+[![Continuous Integration][ci-badge]][ci-link]
+
+# Choreo
 
 A library for choregraphic programming in Scala.
 
 The implementation is based on the paper [_HasChor: Functional Choreographic Programming for All_][haschor-paper] by Gan Shen, Shun Kashiwa and Lindsey Kuper, 
 and its [Haskell implementation][haschor-github].
 
-### Example
+## Example
 
 ```scala
 package choreo
@@ -88,10 +90,13 @@ def readRequest: IO[Request] =
   yield req
 ```
 
-### License
+## License
 
 This library is released under the same license as HasChor, namely the BSD-3 license.
+
 Please see the [`LICENSE`](./LICENSE) within this repository for the full text of the license.
 
+[ci-badge]: https://github.com/romac/choreo/actions/workflows/ci.yml/badge.svg
+[ci-link]: https://github.com/romac/choreo/actions/workflows/ci.yml
 [haschor-paper]: https://dl.acm.org/doi/10.1145/3607849
 [haschor-github]: https://github.com/gshen42/HasChor
