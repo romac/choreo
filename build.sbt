@@ -1,10 +1,10 @@
 ThisBuild / organization := "me.romac"
-ThisBuild / homepage := Some(url("https://github.com/romac/choreo"))
-ThisBuild / licenses := Seq(
+ThisBuild / homepage     := Some(url("https://github.com/romac/choreo"))
+ThisBuild / licenses     := Seq(
   "BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")
 )
 
-ThisBuild / version := Versions.choreo
+ThisBuild / version      := Versions.choreo
 ThisBuild / scalaVersion := Versions.scala3
 ThisBuild / scalacOptions ++= Seq("-source", "3.3")
 
@@ -17,10 +17,10 @@ lazy val core = project
   .settings(
     name := "choreo",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % Versions.cats,
-      "org.typelevel" %% "cats-free" % Versions.cats,
+      "org.typelevel" %% "cats-core"   % Versions.cats,
+      "org.typelevel" %% "cats-free"   % Versions.cats,
       "org.typelevel" %% "cats-effect" % Versions.catsEffect,
-      "org.scalameta" %% "munit" % Versions.munit % Test
+      "org.scalameta" %% "munit"       % Versions.munit % Test
     )
   )
 
@@ -29,15 +29,15 @@ lazy val examples = project
   .settings(
     name := "choreo-examples",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % Versions.cats,
+      "org.typelevel" %% "cats-core"   % Versions.cats,
       "org.typelevel" %% "cats-effect" % Versions.catsEffect
     )
   )
   .dependsOn(core)
 
 val PrimaryJava = JavaSpec.temurin("8")
-val LTSJava = JavaSpec.temurin("17")
-val GraalVM = JavaSpec.graalvm(Graalvm.Distribution("graalvm-community"), "17")
+val LTSJava     = JavaSpec.temurin("17")
+val GraalVM     = JavaSpec.graalvm(Graalvm.Distribution("graalvm-community"), "17")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava, GraalVM)
 

@@ -19,14 +19,11 @@ object Choreo:
   def pure[M[_], A](a: A): Choreo[M, A] = Free.pure(a)
 
 enum ChoreoSig[M[_], A]:
-  case Local[M[_], A, L <: Loc](l: L, m: Unwrap[L] => M[A])
-      extends ChoreoSig[M, A @@ L]
+  case Local[M[_], A, L <: Loc](l: L, m: Unwrap[L] => M[A]) extends ChoreoSig[M, A @@ L]
 
-  case Comm[M[_], A, L0 <: Loc, L1 <: Loc](l0: L0, a: A @@ L0, l1: L1)
-      extends ChoreoSig[M, A @@ L1]
+  case Comm[M[_], A, L0 <: Loc, L1 <: Loc](l0: L0, a: A @@ L0, l1: L1) extends ChoreoSig[M, A @@ L1]
 
-  case Cond[M[_], A, B, L <: Loc](l: L, a: A @@ L, f: A => Choreo[M, B])
-      extends ChoreoSig[M, B]
+  case Cond[M[_], A, B, L <: Loc](l: L, a: A @@ L, f: A => Choreo[M, B]) extends ChoreoSig[M, B]
 
 extension [L <: Loc](l: L)
   def locally[M[_], A](m: Unwrap[l.type] ?=> M[A]): Choreo[M, A @@ l.type] =

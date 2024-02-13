@@ -9,10 +9,10 @@ import cats.arrow.FunctionK
 import choreo.utils.toFunctionK
 
 enum NetworkSig[M[_], A]:
-  case Run(ma: M[A]) extends NetworkSig[M, A]
+  case Run(ma: M[A])       extends NetworkSig[M, A]
   case Send(a: A, to: Loc) extends NetworkSig[M, Unit]
-  case Recv(from: Loc) extends NetworkSig[M, A]
-  case Broadcast(a: A) extends NetworkSig[M, Unit]
+  case Recv(from: Loc)     extends NetworkSig[M, A]
+  case Broadcast(a: A)     extends NetworkSig[M, Unit]
 
 type Network[M[_], A] = Free[[X] =>> NetworkSig[M, X], A]
 
@@ -49,12 +49,10 @@ object Endpoint:
           else Network.empty.asInstanceOf
 
         case ChoreoSig.Comm(src, a, dst) =>
-          if at == src then
-            Network.send(unwrap(a), dst) *> Network.empty.asInstanceOf
+          if at == src then Network.send(unwrap(a), dst) *> Network.empty.asInstanceOf
           else if at == dst then Network.recv(src).map(wrap.asInstanceOf)
           else Network.empty[M, a.Value, a.Location]
 
         case ChoreoSig.Cond(loc, a, f) =>
-          if at == loc then
-            Network.broadcast(unwrap(a)) *> project(f(unwrap(a)), at)
+          if at == loc then Network.broadcast(unwrap(a)) *> project(f(unwrap(a)), at)
           else Network.recv(loc).flatMap(a => project(f(a.asInstanceOf), at))

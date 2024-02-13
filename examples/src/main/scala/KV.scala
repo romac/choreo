@@ -20,25 +20,25 @@ val server: "server" = "server"
 
 def main: IO[Unit] =
   for
-    backend <- Backend.local(List(client, server))
+    backend   <- Backend.local(List(client, server))
     clientTask = choreo.run(backend, client)
     serverTask = choreo.run(backend, server)
-    _ <- (clientTask, serverTask).parTupled
+    _         <- (clientTask, serverTask).parTupled
   yield ()
 
 def choreo: Choreo[IO, Unit] =
   for
     stateS <- server.locally(Ref.of[IO, State](Map.empty))
-    _ <- step(stateS).foreverM
+    _      <- step(stateS).foreverM
   yield ()
 
 def step(stateS: Ref[IO, State] @@ "server"): Choreo[IO, Unit] =
   for
     reqC <- client.locally(readRequest)
     resC <- kvs(reqC, stateS)
-    _ <- client.locally:
-      resC.!.fold(IO.println("Key not found")):
-        IO.print("> ") *> IO.println(_)
+    _    <- client.locally:
+              resC.!.fold(IO.println("Key not found")):
+                IO.print("> ") *> IO.println(_)
   yield ()
 
 def kvs(
@@ -65,17 +65,17 @@ def handleRequest(
 // Request are either:
 //    GET key
 //    PUT key value
-def readRequest: IO[Request] =
+def readRequest: IO[Request]                                   =
   for
-    _ <- IO.print("> ")
+    _    <- IO.print("> ")
     line <- IO.readLine
-    req <- line.split(" ") match
-      case Array("GET", key) =>
-        IO.pure(Request.Get(key))
+    req  <- line.split(" ") match
+              case Array("GET", key) =>
+                IO.pure(Request.Get(key))
 
-      case Array("PUT", key, value) =>
-        IO.pure(Request.Put(key, value))
+              case Array("PUT", key, value) =>
+                IO.pure(Request.Put(key, value))
 
-      case _ =>
-        IO.raiseError(new Exception("Invalid request"))
+              case _ =>
+                IO.raiseError(new Exception("Invalid request"))
   yield req

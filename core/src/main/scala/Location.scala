@@ -6,13 +6,13 @@ type Loc = String
 
 enum At[A, L <: Loc]:
   case Wrap(a: A) extends At[A, L]
-  case Empty() extends At[A, L]
+  case Empty()    extends At[A, L]
 
-  type Value = A
+  type Value    = A
   type Location = L
 
 object At:
-  def empty[A, L <: Loc]: A @@ L = Empty()
+  def empty[A, L <: Loc]: A @@ L          = Empty()
   def apply[L <: Loc]: [A] => A => A @@ L = [A] => (a: A) => Wrap(a)
 
 type @@[A, L <: Loc] = At[A, L]
