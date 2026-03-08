@@ -36,11 +36,10 @@ lazy val examples = project
   )
   .dependsOn(core)
 
-val PrimaryJava = JavaSpec.temurin("8")
-val LTSJava     = JavaSpec.temurin("17")
+val PrimaryJava = JavaSpec.temurin("17")
 val GraalVM     = JavaSpec.graalvm(Graalvm.Distribution("graalvm-community"), "17")
 
-ThisBuild / githubWorkflowJavaVersions := Seq(PrimaryJava, LTSJava, GraalVM)
+ThisBuild / githubWorkflowJavaVersions := Seq(PrimaryJava, GraalVM)
 
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
 
