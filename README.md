@@ -1,4 +1,5 @@
 [![Continuous Integration][ci-badge]][ci-link]
+[![codecov][codecov-badge]][codecov-link]
 
 # Choreo
 
@@ -98,5 +99,7 @@ Please see the [`LICENSE`](./LICENSE) within this repository for the full text o
 
 [ci-badge]: https://github.com/romac/choreo/actions/workflows/ci.yml/badge.svg
 [ci-link]: https://github.com/romac/choreo/actions/workflows/ci.yml
+[codecov-badge]: https://codecov.io/gh/romac/choreo/branch/main/graph/badge.svg
+[codecov-link]: https://codecov.io/gh/romac/choreo
 [haschor-paper]: https://dl.acm.org/doi/10.1145/3607849
 [haschor-github]: https://github.com/gshen42/HasChor
