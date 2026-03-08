@@ -20,7 +20,8 @@ lazy val core = project
       "org.typelevel" %% "cats-core"   % Versions.cats,
       "org.typelevel" %% "cats-free"   % Versions.cats,
       "org.typelevel" %% "cats-effect" % Versions.catsEffect,
-      "org.scalameta" %% "munit"       % Versions.munit % Test
+      "org.scalameta" %% "munit"               % Versions.munit           % Test,
+      "org.typelevel" %% "munit-cats-effect"    % Versions.munitCatsEffect % Test
     )
   )
 
