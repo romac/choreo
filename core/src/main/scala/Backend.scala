@@ -19,7 +19,7 @@ object Backend:
     for inboxes <- LocalBackend.makeInboxes(locs)
     yield LocalBackend(inboxes, locs)
 
-type Channel = (Loc, Loc)
+type Channel = (from: Loc, to: Loc)
 
 class LocalBackend[M[_]](inboxes: Map[Channel, Queue[M, Any]], val locs: Seq[Loc]):
 
@@ -38,11 +38,11 @@ class LocalBackend[M[_]](inboxes: Map[Channel, Queue[M, Any]], val locs: Seq[Loc
           ma
 
         case NetworkSig.Send(a, to) =>
-          val inbox = inboxes((at, to))
+          val inbox = inboxes((from = at, to = to))
           inbox.offer(a)
 
         case NetworkSig.Recv(from) =>
-          val inbox = inboxes((from, at))
+          val inbox = inboxes((from = from, to = at))
           inbox.take.map(_.asInstanceOf[A])
 
         case NetworkSig.Broadcast(a) =>
@@ -56,7 +56,7 @@ object LocalBackend:
   def makeInboxes[M[_]: Concurrent](
       locs: Seq[Loc]
   ): M[Map[Channel, Queue[M, Any]]] =
-    val channels = for { s <- locs; r <- locs; if s != r } yield (s, r)
+    val channels = for { s <- locs; r <- locs; if s != r } yield (from = s, to = r)
     for queues <- channels.traverse(_ => Queue.unbounded[M, Any])
     yield channels.zip(queues).toMap
 

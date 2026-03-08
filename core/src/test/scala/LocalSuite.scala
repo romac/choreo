@@ -111,13 +111,13 @@ class LocalSuite extends CatsEffectSuite {
   }
 
   test("LocalBackend: messages from different senders are routed correctly") {
-    val c: Choreo[IO, (Int @@ "carol", Int @@ "carol")] =
+    val c: Choreo[IO, (fromAlice: Int @@ "carol", fromBob: Int @@ "carol")] =
       for
         a <- alice.locally(IO.pure(1))
         b <- bob.locally(IO.pure(2))
         ca <- alice.send(a).to(carol)
         cb <- bob.send(b).to(carol)
-      yield (ca, cb)
+      yield (fromAlice = ca, fromBob = cb)
 
     for
       backend  <- Backend.local[IO](List(alice, bob, carol))
@@ -127,8 +127,8 @@ class LocalSuite extends CatsEffectSuite {
       _        <- aliceFib.joinWithNever
       _        <- bobFib.joinWithNever
     yield {
-      assertEquals(unwrap[carol.type](resultC._1), 1)
-      assertEquals(unwrap[carol.type](resultC._2), 2)
+      assertEquals(unwrap[carol.type](resultC.fromAlice), 1)
+      assertEquals(unwrap[carol.type](resultC.fromBob), 2)
     }
   }
 
