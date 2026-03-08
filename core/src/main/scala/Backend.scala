@@ -17,10 +17,11 @@ object Backend:
       locs: List[Loc]
   ): M[LocalBackend[M]] =
     for inboxes <- LocalBackend.makeInboxes(locs)
-    yield LocalBackend(inboxes)
+    yield LocalBackend(inboxes, locs)
 
-class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
-  val locs = inboxes.keys.toSeq
+type Channel = (Loc, Loc)
+
+class LocalBackend[M[_]](inboxes: Map[Channel, Queue[M, Any]], val locs: Seq[Loc]):
 
   def runNetwork[A](at: Loc)(
       network: Network[M, A]
@@ -29,7 +30,7 @@ class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
 
   private[choreo] def run(
       at: Loc,
-      inboxes: Map[Loc, Queue[M, Any]]
+      inboxes: Map[Channel, Queue[M, Any]]
   )(using M: Monad[M]): [A] => NetworkSig[M, A] => M[A] = [A] =>
     (na: NetworkSig[M, A]) =>
       na match
@@ -37,11 +38,11 @@ class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
           ma
 
         case NetworkSig.Send(a, to) =>
-          val inbox = inboxes.get(to).get
+          val inbox = inboxes((at, to))
           inbox.offer(a)
 
         case NetworkSig.Recv(from) =>
-          val inbox = inboxes.get(at).get
+          val inbox = inboxes((from, at))
           inbox.take.map(_.asInstanceOf[A])
 
         case NetworkSig.Broadcast(a) =>
@@ -54,9 +55,10 @@ class LocalBackend[M[_]](inboxes: Map[Loc, Queue[M, Any]]):
 object LocalBackend:
   def makeInboxes[M[_]: Concurrent](
       locs: Seq[Loc]
-  ): M[Map[Loc, Queue[M, Any]]] =
-    for queues <- locs.traverse(_ => Queue.unbounded[M, Any])
-    yield locs.zip(queues).toMap
+  ): M[Map[Channel, Queue[M, Any]]] =
+    val channels = for { s <- locs; r <- locs; if s != r } yield (s, r)
+    for queues <- channels.traverse(_ => Queue.unbounded[M, Any])
+    yield channels.zip(queues).toMap
 
   given localBackend[M[_]: Monad]: Backend[LocalBackend[M], M] with
     extension (b: LocalBackend[M])
