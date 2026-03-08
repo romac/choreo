@@ -23,8 +23,8 @@ def main: IO[Unit] =
   for
     backend <- Backend.local(List(buyer, seller))
 
-    sellerIO = protocol.run(backend, seller)
-    buyerIO  = protocol.run(backend, buyer)
+    sellerIO = protocol.project(backend, seller)
+    buyerIO  = protocol.project(backend, buyer)
 
     _ <- (sellerIO, buyerIO).parTupled
   yield ()

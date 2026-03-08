@@ -21,8 +21,8 @@ val server: "server" = "server"
 def main: IO[Unit] =
   for
     backend   <- Backend.local(List(client, server))
-    clientTask = choreo.run(backend, client)
-    serverTask = choreo.run(backend, server)
+    clientTask = choreo.project(backend, client)
+    serverTask = choreo.project(backend, server)
     _         <- (clientTask, serverTask).parTupled
   yield ()
 

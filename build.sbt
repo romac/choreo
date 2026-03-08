@@ -6,7 +6,7 @@ ThisBuild / licenses     := Seq(
 
 ThisBuild / version      := Versions.choreo
 ThisBuild / scalaVersion := Versions.scala3
-ThisBuild / scalacOptions ++= Seq("-source", "3.3")
+
 
 lazy val root = project
   .in(file("."))

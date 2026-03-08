@@ -68,8 +68,8 @@ class BooksellerSuite extends CatsEffectSuite {
     for
       backend  <- Backend.local[IO](List(buyer, seller))
       choreo    = bookseller("Types and Programming Languages", 100.0)
-      sellerF  <- choreo.run(backend, seller).start
-      buyerRes <- choreo.run(backend, buyer)
+      sellerF  <- choreo.project(backend, seller).start
+      buyerRes <- choreo.project(backend, buyer)
       _        <- sellerF.joinWithNever
     yield {
       val date = unwrap[buyer.type](buyerRes.get)
@@ -81,8 +81,8 @@ class BooksellerSuite extends CatsEffectSuite {
     for
       backend  <- Backend.local[IO](List(buyer, seller))
       choreo    = bookseller("Erta Ale", 50.0)
-      sellerF  <- choreo.run(backend, seller).start
-      buyerRes <- choreo.run(backend, buyer)
+      sellerF  <- choreo.project(backend, seller).start
+      buyerRes <- choreo.project(backend, buyer)
       _        <- sellerF.joinWithNever
     yield assertEquals(buyerRes, None)
   }
@@ -91,8 +91,8 @@ class BooksellerSuite extends CatsEffectSuite {
     for
       backend  <- Backend.local[IO](List(buyer, seller))
       choreo    = bookseller("Nonexistent", 1000.0)
-      sellerF  <- choreo.run(backend, seller).start
-      buyerRes <- choreo.run(backend, buyer)
+      sellerF  <- choreo.project(backend, seller).start
+      buyerRes <- choreo.project(backend, buyer)
       _        <- sellerF.joinWithNever
     yield assertEquals(buyerRes, None)
   }
@@ -123,8 +123,8 @@ class BooksellerSuite extends CatsEffectSuite {
       yield result
 
       backend  <- Backend.local[IO](List(buyer, seller))
-      sellerF  <- choreo.run(backend, seller).start
-      _        <- choreo.run(backend, buyer)
+      sellerF  <- choreo.project(backend, seller).start
+      _        <- choreo.project(backend, buyer)
       _        <- sellerF.joinWithNever
 
       bLog <- buyerLog.get
@@ -150,8 +150,8 @@ class BooksellerSuite extends CatsEffectSuite {
 
     for
       backend  <- Backend.local[IO](List(buyer, seller))
-      sellerF  <- pingPong.run(backend, seller).start
-      buyerRes <- pingPong.run(backend, buyer)
+      sellerF  <- pingPong.project(backend, seller).start
+      buyerRes <- pingPong.project(backend, buyer)
       _        <- sellerF.joinWithNever
     yield assertEquals(unwrap[buyer.type](buyerRes), 1111)
   }

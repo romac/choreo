@@ -12,7 +12,7 @@ import choreo.utils.toFunctionK
 type Choreo[M[_], A] = Free[[X] =>> ChoreoSig[M, X], A]
 
 extension [M[_], A](c: Choreo[M, A])
-  def run[B](backend: B, at: Loc)(using B: Backend[B, M]): M[A] =
+  def project[B](backend: B, at: Loc)(using B: Backend[B, M]): M[A] =
     backend.runNetwork(at)(Endpoint.project(c, at))
 
 object Choreo:

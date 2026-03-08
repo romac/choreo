@@ -103,8 +103,8 @@ class LocalSuite extends CatsEffectSuite {
 
     for
       backend  <- Backend.local[IO](List(alice, bob))
-      aliceFib <- c.run(backend, alice).start
-      bobFib   <- c.run(backend, bob).start
+      aliceFib <- c.project(backend, alice).start
+      bobFib   <- c.project(backend, bob).start
       resultA  <- aliceFib.joinWithNever
       _        <- bobFib.joinWithNever
     yield assertEquals(unwrap[alice.type](resultA), "ping-pong")
@@ -121,9 +121,9 @@ class LocalSuite extends CatsEffectSuite {
 
     for
       backend  <- Backend.local[IO](List(alice, bob, carol))
-      aliceFib <- c.run(backend, alice).start
-      bobFib   <- c.run(backend, bob).start
-      resultC  <- c.run(backend, carol)
+      aliceFib <- c.project(backend, alice).start
+      bobFib   <- c.project(backend, bob).start
+      resultC  <- c.project(backend, carol)
       _        <- aliceFib.joinWithNever
       _        <- bobFib.joinWithNever
     yield {
@@ -146,8 +146,8 @@ class LocalSuite extends CatsEffectSuite {
 
     for
       backend  <- Backend.local[IO](List(alice, bob))
-      aliceFib <- c.run(backend, alice).start
-      resultB  <- c.run(backend, bob)
+      aliceFib <- c.project(backend, alice).start
+      resultB  <- c.project(backend, bob)
       _        <- aliceFib.joinWithNever
     yield assertEquals(unwrap[bob.type](resultB), "yes")
   }
@@ -164,8 +164,8 @@ class LocalSuite extends CatsEffectSuite {
 
     for
       backend  <- Backend.local[IO](List(alice, bob))
-      aliceFib <- c.run(backend, alice).start
-      resultB  <- c.run(backend, bob)
+      aliceFib <- c.project(backend, alice).start
+      resultB  <- c.project(backend, bob)
       _        <- aliceFib.joinWithNever
     yield assertEquals(unwrap[bob.type](resultB), "no")
   }
@@ -203,7 +203,7 @@ class LocalSuite extends CatsEffectSuite {
 
     for
       backend <- Backend.local[IO](List(alice))
-      result  <- c.run(backend, alice).attempt
+      result  <- c.project(backend, alice).attempt
     yield assert(result.isLeft)
   }
 }
