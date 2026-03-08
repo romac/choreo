@@ -58,7 +58,7 @@ object LocalBackend:
     for queues <- locs.traverse(_ => Queue.unbounded[M, Any])
     yield locs.zip(queues).toMap
 
-  given backend[M[_]: Monad]: Backend[LocalBackend[M], M] with
-    extension (backend: LocalBackend[M])
+  given localBackend[M[_]: Monad]: Backend[LocalBackend[M], M] with
+    extension (b: LocalBackend[M])
       def runNetwork[A](at: Loc)(network: Network[M, A]): M[A] =
-        runNetwork(at)(network)
+        b.runNetwork(at)(network)
