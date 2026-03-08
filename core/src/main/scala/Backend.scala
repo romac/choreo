@@ -50,7 +50,7 @@ class LocalBackend[M[_]](inboxes: Map[Channel, Queue[M, Any]], val locs: Seq[Loc
             .filter(_ != at)
             .traverse_ { to =>
               run(at, inboxes)(NetworkSig.Send(a, to))
-          }
+            }
 
 object LocalBackend:
   def makeInboxes[M[_]: Concurrent](

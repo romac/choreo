@@ -81,12 +81,12 @@ class LocalSuite extends CatsEffectSuite {
       yield b
 
     for
-      backend  <- Backend.local[IO](List(alice, bob))
-      aliceNet  = Endpoint.project(c, alice)
-      bobNet    = Endpoint.project(c, bob)
-      fiber    <- backend.runNetwork(alice)(aliceNet).start
-      result   <- backend.runNetwork(bob)(bobNet)
-      _        <- fiber.joinWithNever
+      backend <- Backend.local[IO](List(alice, bob))
+      aliceNet = Endpoint.project(c, alice)
+      bobNet   = Endpoint.project(c, bob)
+      fiber   <- backend.runNetwork(alice)(aliceNet).start
+      result  <- backend.runNetwork(bob)(bobNet)
+      _       <- fiber.joinWithNever
     yield assertEquals(unwrap[bob.type](result), 99)
   }
 
@@ -113,8 +113,8 @@ class LocalSuite extends CatsEffectSuite {
   test("LocalBackend: messages from different senders are routed correctly") {
     val c: Choreo[IO, (fromAlice: Int @@ "carol", fromBob: Int @@ "carol")] =
       for
-        a <- alice.locally(IO.pure(1))
-        b <- bob.locally(IO.pure(2))
+        a  <- alice.locally(IO.pure(1))
+        b  <- bob.locally(IO.pure(2))
         ca <- alice.send(a).to(carol)
         cb <- bob.send(b).to(carol)
       yield (fromAlice = ca, fromBob = cb)
@@ -137,11 +137,11 @@ class LocalSuite extends CatsEffectSuite {
   test("Cond: true branch is taken") {
     val c: Choreo[IO, String @@ "bob"] =
       for
-        flag <- alice.locally(IO.pure(true))
+        flag   <- alice.locally(IO.pure(true))
         result <- alice.cond(flag) {
-          case true  => bob.locally(IO.pure("yes"))
-          case false => bob.locally(IO.pure("no"))
-        }
+                    case true  => bob.locally(IO.pure("yes"))
+                    case false => bob.locally(IO.pure("no"))
+                  }
       yield result
 
     for
@@ -155,11 +155,11 @@ class LocalSuite extends CatsEffectSuite {
   test("Cond: false branch is taken") {
     val c: Choreo[IO, String @@ "bob"] =
       for
-        flag <- alice.locally(IO.pure(false))
+        flag   <- alice.locally(IO.pure(false))
         result <- alice.cond(flag) {
-          case true  => bob.locally(IO.pure("yes"))
-          case false => bob.locally(IO.pure("no"))
-        }
+                    case true  => bob.locally(IO.pure("yes"))
+                    case false => bob.locally(IO.pure("no"))
+                  }
       yield result
 
     for
@@ -173,11 +173,11 @@ class LocalSuite extends CatsEffectSuite {
   test("Cond: runLocal takes the correct branch") {
     val c: Choreo[IO, String @@ "bob"] =
       for
-        flag <- alice.locally(IO.pure(true))
+        flag   <- alice.locally(IO.pure(true))
         result <- alice.cond(flag) {
-          case true  => bob.locally(IO.pure("yes"))
-          case false => bob.locally(IO.pure("no"))
-        }
+                    case true  => bob.locally(IO.pure("yes"))
+                    case false => bob.locally(IO.pure("no"))
+                  }
       yield result
 
     c.runLocal.map { result =>

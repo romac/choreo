@@ -102,30 +102,35 @@ class BooksellerSuite extends CatsEffectSuite {
       buyerLog  <- Ref.of[IO, List[String]](Nil)
       sellerLog <- Ref.of[IO, List[String]](Nil)
 
-      choreo = for
-        titleB <- buyer.locally:
-                    buyerLog.update(_ :+ "buyer:title") *> IO.pure("Types and Programming Languages")
-        titleS <- buyer.send(titleB).to(seller)
-        priceS <- seller.locally:
-                    sellerLog.update(_ :+ "seller:price") *> IO.pure(80.0)
-        priceB <- seller.send(priceS).to(buyer)
-        decision <- buyer.locally:
-                      buyerLog.update(_ :+ "buyer:decision") *> IO.pure(true)
-        result <- buyer.cond(decision):
-                    case true =>
-                      for
-                        dateS <- seller.locally:
-                                   sellerLog.update(_ :+ "seller:date") *> IO.pure(Date(2026, 1, 1))
-                        dateB <- seller.send(dateS).to(buyer)
-                      yield Some(dateB)
-                    case false =>
-                      Choreo.pure(None)
-      yield result
+      choreo =
+        for
+          titleB   <- buyer.locally:
+                        buyerLog.update(_ :+ "buyer:title") *> IO.pure(
+                          "Types and Programming Languages"
+                        )
+          titleS   <- buyer.send(titleB).to(seller)
+          priceS   <- seller.locally:
+                        sellerLog.update(_ :+ "seller:price") *> IO.pure(80.0)
+          priceB   <- seller.send(priceS).to(buyer)
+          decision <- buyer.locally:
+                        buyerLog.update(_ :+ "buyer:decision") *> IO.pure(true)
+          result   <- buyer.cond(decision):
+                        case true  =>
+                          for
+                            dateS <- seller.locally:
+                                       sellerLog.update(_ :+ "seller:date") *> IO.pure(
+                                         Date(2026, 1, 1)
+                                       )
+                            dateB <- seller.send(dateS).to(buyer)
+                          yield Some(dateB)
+                        case false =>
+                          Choreo.pure(None)
+        yield result
 
-      backend  <- Backend.local[IO](List(buyer, seller))
-      sellerF  <- choreo.project(backend, seller).start
-      _        <- choreo.project(backend, buyer)
-      _        <- sellerF.joinWithNever
+      backend <- Backend.local[IO](List(buyer, seller))
+      sellerF <- choreo.project(backend, seller).start
+      _       <- choreo.project(backend, buyer)
+      _       <- sellerF.joinWithNever
 
       bLog <- buyerLog.get
       sLog <- sellerLog.get
@@ -138,14 +143,14 @@ class BooksellerSuite extends CatsEffectSuite {
   test("distributed: multiple rounds of communication") {
     val pingPong: Choreo[IO, Int @@ "buyer"] =
       for
-        a  <- buyer.locally(IO.pure(1))
-        b  <- buyer.send(a).to(seller)
-        c  <- seller.locally(IO.pure(b.! + 10))
-        d  <- seller.send(c).to(buyer)
-        e  <- buyer.locally(IO.pure(d.! + 100))
-        f  <- buyer.send(e).to(seller)
-        g  <- seller.locally(IO.pure(f.! + 1000))
-        h  <- seller.send(g).to(buyer)
+        a <- buyer.locally(IO.pure(1))
+        b <- buyer.send(a).to(seller)
+        c <- seller.locally(IO.pure(b.! + 10))
+        d <- seller.send(c).to(buyer)
+        e <- buyer.locally(IO.pure(d.! + 100))
+        f <- buyer.send(e).to(seller)
+        g <- seller.locally(IO.pure(f.! + 1000))
+        h <- seller.send(g).to(buyer)
       yield h
 
     for

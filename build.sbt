@@ -7,7 +7,6 @@ ThisBuild / licenses     := Seq(
 ThisBuild / version      := Versions.choreo
 ThisBuild / scalaVersion := Versions.scala3
 
-
 lazy val root = project
   .in(file("."))
   .aggregate(core, examples)
@@ -17,11 +16,11 @@ lazy val core = project
   .settings(
     name := "choreo",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core"   % Versions.cats,
-      "org.typelevel" %% "cats-free"   % Versions.cats,
-      "org.typelevel" %% "cats-effect" % Versions.catsEffect,
-      "org.scalameta" %% "munit"               % Versions.munit           % Test,
-      "org.typelevel" %% "munit-cats-effect"    % Versions.munitCatsEffect % Test
+      "org.typelevel" %% "cats-core"         % Versions.cats,
+      "org.typelevel" %% "cats-free"         % Versions.cats,
+      "org.typelevel" %% "cats-effect"       % Versions.catsEffect,
+      "org.scalameta" %% "munit"             % Versions.munit           % Test,
+      "org.typelevel" %% "munit-cats-effect" % Versions.munitCatsEffect % Test
     )
   )
 

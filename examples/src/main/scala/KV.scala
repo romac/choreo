@@ -65,7 +65,7 @@ def handleRequest(
 // Request are either:
 //    GET key
 //    PUT key value
-def readRequest: IO[Request]                                   =
+def readRequest: IO[Request] =
   for
     _    <- IO.print("> ")
     line <- IO.readLine
