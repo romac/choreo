@@ -17,7 +17,7 @@ val books = List(
 )
 
 val buyer: "buyer"   = "buyer"
-val seller: "sender" = "sender"
+val seller: "seller" = "seller"
 
 def main: IO[Unit] =
   for
