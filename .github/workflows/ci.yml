@@ -86,7 +86,7 @@ jobs:
       - name: Publish project
         env:
           MILL_PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          MILL_PGP_SECRET_KEY: ${{ secrets.PGP_SECRET }}
+          MILL_PGP_SECRET_BASE64: ${{ secrets.PGP_SECRET_BASE64 }}
           MILL_SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           MILL_SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        run: ./mill mill.scalalib.PublishModule/publishAll --publishArtifacts __.publishArtifacts --sonatypeUri https://s01.oss.sonatype.org/service/local --sonatypeSnapshotUri https://s01.oss.sonatype.org/content/repositories/snapshots
+        run: ./mill mill.javalib.SonatypeCentralPublishModule/publishAll

@@ -4,8 +4,9 @@
 
 package build
 
-import mill.*, scalalib.*, scalalib.publish.*
 import mill.contrib.scoverage.ScoverageModule
+import mill.javalib.publish.*
+import mill.*, scalalib.*
 
 object versions {
   val choreo          = "0.1.0"
@@ -20,22 +21,24 @@ trait ChoreoModule extends ScalaModule {
   def scalaVersion = versions.scala3
 }
 
-object core extends ChoreoModule with PublishModule with ScoverageModule {
+object core extends ChoreoModule with mill.javalib.SonatypeCentralPublishModule with ScoverageModule {
   def scoverageVersion = "2.1.1"
   def artifactName     = "choreo"
 
-  def publishVersion = versions.choreo
+  def publishVersion: T[String] = versions.choreo
 
-  def pomSettings = PomSettings(
-    description = "Choreographic programming in Scala 3",
-    organization = "me.romac",
-    url = "https://github.com/romac/choreo",
-    licenses = Seq(License.`BSD-3-Clause`),
-    versionControl = VersionControl.github("romac", "choreo"),
-    developers = Seq(
-      Developer("romac", "Romain Ruetschi", "https://github.com/romac")
+  def pomSettings: T[PomSettings] = Task {
+    PomSettings(
+      description = "Choreographic programming in Scala 3",
+      organization = "me.romac",
+      url = "https://github.com/romac/choreo",
+      licenses = Seq(License.`BSD-3-Clause`),
+      versionControl = VersionControl.github("romac", "choreo"),
+      developers = Seq(
+        Developer("romac", "Romain Ruetschi", "https://github.com/romac")
+      )
     )
-  )
+  }
 
   def mvnDeps = Seq(
     mvn"org.typelevel::cats-core:${versions.cats}",
