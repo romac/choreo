@@ -37,8 +37,8 @@ A backend interprets `Network[M, A]` into the effect monad `M[A]`. Choreo provid
 
 ## Topics
 
-- [Locations](/concepts/locations/) -- the type-level mechanism for tracking data ownership.
-- [Communication](/concepts/communication/) -- local computation and point-to-point messaging.
-- [Branching](/concepts/branching/) -- conditional execution and label-based selection.
-- [Parallel Composition](/concepts/parallel/) -- running independent choreographies concurrently.
-- [Endpoint Projection](/concepts/endpoint-projection/) -- how global choreographies become local network programs.
+- [Locations](locations/) -- the type-level mechanism for tracking data ownership.
+- [Communication](communication/) -- local computation and point-to-point messaging.
+- [Branching](branching/) -- conditional execution and label-based selection.
+- [Parallel Composition](parallel/) -- running independent choreographies concurrently.
+- [Endpoint Projection](endpoint-projection/) -- how global choreographies become local network programs.

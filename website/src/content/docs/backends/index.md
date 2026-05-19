@@ -73,5 +73,5 @@ The `.project(backend, loc)` extension method on `Choreo` performs two steps int
 
 | Backend | Transport | Use case |
 |---------|-----------|----------|
-| [LocalBackend](/backends/local/) | In-memory queues | Testing, demos, single-process execution |
-| [TcpBackend](/backends/tcp/) | TCP sockets | Distributed execution across processes or machines |
+| [LocalBackend](local/) | In-memory queues | Testing, demos, single-process execution |
+| [TcpBackend](tcp/) | TCP sockets | Distributed execution across processes or machines |

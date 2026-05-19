@@ -22,7 +22,7 @@ All examples live in the `examples` module and can be run with Mill:
 
 ## Available examples
 
-### [Key-Value Store](/examples/kv-store/)
+### [Key-Value Store](kv-store/)
 
 A client/server protocol where the client sends `GET` and `PUT` requests to a
 server that maintains an in-memory key-value store. Demonstrates:
@@ -32,7 +32,7 @@ server that maintains an in-memory key-value store. Demonstrates:
 - Stateful server using `Ref`
 - Looping with `foreverM`
 
-### [Bookseller](/examples/bookseller/)
+### [Bookseller](bookseller/)
 
 A two-party purchase protocol adapted from the choreographic programming
 literature. A buyer queries a seller for a book price, then decides whether to
